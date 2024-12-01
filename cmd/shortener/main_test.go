@@ -25,7 +25,7 @@ func TestMyHandler(t *testing.T) {
 			name: "post",
 			want: want{
 				code:        201,
-				response:    `http://localhost:8080/0`,
+				response:    `/1`,
 				contentType: "text/plain",
 			},
 		},
@@ -62,7 +62,7 @@ func TestMyHandler(t *testing.T) {
 				assert.Equal(t, test.want.response, string(resBody))
 				assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 			case "get":
-				request := httptest.NewRequest(http.MethodGet, "/0", nil)
+				request := httptest.NewRequest(http.MethodGet, "/1", nil)
 				w := httptest.NewRecorder()
 				GetHandler(w, request)
 

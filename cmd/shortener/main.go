@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/ipcross/urlShortener/config"
 	"io"
 	"log"
 	"net/http"
@@ -20,16 +21,21 @@ func PostHandler(res http.ResponseWriter, req *http.Request) {
 		mapper = Mapper{}
 		mapper.URL = make(map[int]string)
 	}
+	mapper.Counter++
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	if len(body) == 0 {
+		res.WriteHeader(http.StatusBadRequest)
+		res.Write([]byte("Base URL not correct"))
+		return
+	}
 	mapper.URL[mapper.Counter] = string(body)
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	res.Write([]byte("http://localhost:8080/" + strconv.Itoa(mapper.Counter)))
-	mapper.Counter++
+	res.Write([]byte(config.ServerSettings.AddressBase + "/" + strconv.Itoa(mapper.Counter)))
 }
 
 func GetHandler(res http.ResponseWriter, req *http.Request) {
@@ -66,7 +72,8 @@ func myRouter() chi.Router {
 }
 
 func run() error {
-	return http.ListenAndServe(`:8080`, myRouter())
+	config.InitSettings()
+	return http.ListenAndServe(config.ServerSettings.AddressRun, myRouter())
 }
 
 func main() {
