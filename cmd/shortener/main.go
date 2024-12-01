@@ -15,6 +15,11 @@ type Mapper struct {
 var mapper Mapper
 
 func myHandler(res http.ResponseWriter, req *http.Request) {
+	if mapper.URL == nil {
+		mapper = Mapper{}
+		mapper.URL = make(map[int]string)
+	}
+
 	switch req.Method {
 	case http.MethodPost:
 		body, err := io.ReadAll(req.Body)
