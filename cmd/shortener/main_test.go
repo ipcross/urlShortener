@@ -33,7 +33,7 @@ func TestMyHandler(t *testing.T) {
 			name: "get",
 			want: want{
 				code:           307,
-				headerLocation: "http//yandex.ru",
+				headerLocation: "http://yandex.ru",
 			},
 		},
 		{
@@ -47,10 +47,10 @@ func TestMyHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			switch test.name {
 			case "post":
-				longURL := strings.NewReader("http//yandex.ru")
+				longURL := strings.NewReader("http://yandex.ru")
 				request := httptest.NewRequest(http.MethodPost, "/", longURL)
 				w := httptest.NewRecorder()
-				myHandler(w, request)
+				PostHandler(w, request)
 
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
@@ -64,7 +64,7 @@ func TestMyHandler(t *testing.T) {
 			case "get":
 				request := httptest.NewRequest(http.MethodGet, "/0", nil)
 				w := httptest.NewRecorder()
-				myHandler(w, request)
+				GetHandler(w, request)
 
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
@@ -73,7 +73,7 @@ func TestMyHandler(t *testing.T) {
 			default:
 				request := httptest.NewRequest(http.MethodPut, "/", nil)
 				w := httptest.NewRecorder()
-				myHandler(w, request)
+				BadRequestHandler(w, request)
 
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
