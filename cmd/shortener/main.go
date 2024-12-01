@@ -61,13 +61,6 @@ func myRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/*", PostHandler)
 	r.Get("/{id}", GetHandler)
-	r.Put("/*", BadRequestHandler)
-	r.Delete("/*", BadRequestHandler)
-	r.Options("/*", BadRequestHandler)
-	r.Head("/*", BadRequestHandler)
-	r.Trace("/*", BadRequestHandler)
-	r.Connect("/*", BadRequestHandler)
-	r.Patch("/*", BadRequestHandler)
 	return r
 }
 
