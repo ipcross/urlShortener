@@ -1,12 +1,19 @@
 .PHONY: all
-all: build
+all: run
+
+.PHONY: run
+run: build
+	./bin/shortener
 
 .PHONY: build
 build:
 	go build -o bin/shortener ./cmd/shortener/
 
 test: build
-	shortenertest -test.v -test.run=^TestIteration$(n)$$ -binary-path=bin/shortener
+	go test ./...
+
+stb: build
+	shortenertestbeta -test.v -test.run=^TestIteration$(n)$$ -binary-path=bin/shortener -source-path=. -server-port=3010
 
 linter:
 	go vet -vettool=$$(which statictest) ./...

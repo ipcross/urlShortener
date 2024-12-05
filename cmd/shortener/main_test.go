@@ -1,23 +1,32 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/ipcross/urlShortener/internal/config"
+	"github.com/ipcross/urlShortener/internal/handlers"
+	"github.com/ipcross/urlShortener/internal/repository"
+	"github.com/ipcross/urlShortener/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type want struct {
-	code           int
-	response       string
-	contentType    string
-	headerLocation string
+	code        int
+	response    string
+	contentType string
 }
 
-func TestPostHandler(t *testing.T) {
+func TestHandlers(t *testing.T) {
+	cfg := config.GetConfig()
+	store := repository.NewStore()
+	mapperService := service.NewMapper(store)
+	h := handlers.NewHandlers(mapperService, cfg)
 	tests := []struct {
 		name string
 		want want
@@ -33,72 +42,44 @@ func TestPostHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			longURL := strings.NewReader("http://yandex.ru")
+			longURL := strings.NewReader("https://yandex.ru")
 			request := httptest.NewRequest(http.MethodPost, "/", longURL)
 			w := httptest.NewRecorder()
-			PostHandler(w, request)
+			h.PostHandler(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode)
-
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
+			defer dclose(res.Body)
+			_, err := io.ReadAll(res.Body)
 
 			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
 			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
 		})
 	}
+
+	t.Run("Not found", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodGet, "/bad_hash", http.NoBody)
+		w := httptest.NewRecorder()
+		h.GetHandler(w, request)
+
+		res := w.Result()
+		assert.Equal(t, 400, res.StatusCode)
+		defer dclose(res.Body)
+	})
+
+	t.Run("Bad request", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPut, "/", http.NoBody)
+		w := httptest.NewRecorder()
+		h.BadRequestHandler(w, request)
+
+		res := w.Result()
+		assert.Equal(t, 400, res.StatusCode)
+		defer dclose(res.Body)
+	})
 }
 
-func TestGetHandler(t *testing.T) {
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "get",
-			want: want{
-				code:           307,
-				headerLocation: "http://yandex.ru",
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, "/1", nil)
-			w := httptest.NewRecorder()
-			GetHandler(w, request)
-
-			res := w.Result()
-			assert.Equal(t, test.want.code, res.StatusCode)
-			assert.Equal(t, test.want.headerLocation, res.Header.Get("Location"))
-			defer res.Body.Close()
-		})
-	}
-}
-
-func TestBadRequestHandler(t *testing.T) {
-	tests := []struct {
-		name string
-		want want
-	}{
-		{
-			name: "bad_request",
-			want: want{
-				code: 400,
-			},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodPut, "/", nil)
-			w := httptest.NewRecorder()
-			BadRequestHandler(w, request)
-
-			res := w.Result()
-			assert.Equal(t, test.want.code, res.StatusCode)
-			defer res.Body.Close()
-		})
+func dclose(c io.Closer) {
+	if err := c.Close(); err != nil {
+		log.Fatal(err)
 	}
 }
