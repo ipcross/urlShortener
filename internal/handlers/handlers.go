@@ -8,24 +8,35 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/ipcross/urlShortener/internal/config"
+	l "github.com/ipcross/urlShortener/internal/logger"
 	"github.com/ipcross/urlShortener/internal/service"
+	"go.uber.org/zap"
 )
 
 func Serve(cfg config.ServerSettings, mapper Mapper) error {
+	logger, err := l.Initialize(cfg.LogLevel)
+	if err != nil {
+		return fmt.Errorf("logger.Initialize: %w", err)
+	}
+	defer l.Sync(logger)
+
+	logger.Info("Running server", zap.String("address", cfg.AddressRun))
+
 	h := NewHandlers(mapper, cfg)
-	router := myRouter(h)
+	router := myRouter(h, logger)
 
 	srv := &http.Server{
 		Addr:    cfg.AddressRun,
 		Handler: router,
 	}
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	return fmt.Errorf("handlers.Serve wrap: %w", err)
 }
 
-func myRouter(h *handlers) chi.Router {
+func myRouter(h *handlers, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
+	r.Use(l.RequestLogger(logger))
 	r.Post("/*", h.PostHandler)
 	r.Get("/{key}", h.GetHandler)
 	r.Put("/*", h.BadRequestHandler)
