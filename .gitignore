@@ -12,8 +12,8 @@
 *.out
 
 # Binaries
-cmd/shortener/main
-cmd/shortener/shortener
+bin/shortener
+!/bin/.keep
 
 # Dependency directories (remove the comment below to include it)
 vendor/
@@ -21,3 +21,5 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+golangci-lint/
