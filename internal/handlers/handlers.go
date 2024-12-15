@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ipcross/urlShortener/internal/config"
 	l "github.com/ipcross/urlShortener/internal/logger"
+	"github.com/ipcross/urlShortener/internal/middleware"
 	"github.com/ipcross/urlShortener/internal/service"
 	"go.uber.org/zap"
 )
@@ -38,6 +39,7 @@ func Serve(cfg config.ServerSettings, mapper Mapper) error {
 func myRouter(h *handlers, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
 	r.Use(l.RequestLogger(logger))
+	r.Use(middleware.Gzip)
 	r.Post("/*", h.PostHandler)
 	r.Post("/api/shorten", h.APIHandler)
 	r.Get("/{key}", h.GetHandler)
