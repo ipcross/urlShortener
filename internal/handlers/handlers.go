@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -38,6 +39,7 @@ func myRouter(h *handlers, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
 	r.Use(l.RequestLogger(logger))
 	r.Post("/*", h.PostHandler)
+	r.Post("/api/shorten", h.APIHandler)
 	r.Get("/{key}", h.GetHandler)
 	r.Put("/*", h.BadRequestHandler)
 	return r
@@ -113,9 +115,32 @@ func (h *handlers) PostHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	_, err = res.Write([]byte(h.config.AddressBase + "/" + resp.Key))
+	_, err = res.Write([]byte(resp.Link))
 	if err != nil {
 		log.Printf("Error writing to response: %v", err)
+		return
+	}
+}
+
+func (h *handlers) APIHandler(res http.ResponseWriter, req *http.Request) {
+	var r service.SetMapperRequest
+	dec := json.NewDecoder(req.Body)
+	if err := dec.Decode(&r); err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := h.mapper.SetMapper(&r)
+	if err != nil {
+		log.Printf("failed to save URL: %v", err)
+		http.Error(res, "Failed to save URL", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+
+	enc := json.NewEncoder(res)
+	if err := enc.Encode(resp); err != nil {
 		return
 	}
 }
