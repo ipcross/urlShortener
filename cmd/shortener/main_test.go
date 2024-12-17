@@ -26,7 +26,7 @@ type want struct {
 
 func TestHandlers(t *testing.T) {
 	cfg := config.GetConfig()
-	store := repository.NewStore()
+	store := repository.NewStore(cfg)
 	mapperService := service.NewMapper(cfg, store)
 	h := handlers.NewHandlers(mapperService, cfg)
 	tests := []struct {

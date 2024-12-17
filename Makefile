@@ -14,7 +14,7 @@ test: build
 
 stb: build
 	shortenertestbeta -test.v -test.run=^TestIteration$(n)$$ -binary-path=bin/shortener -source-path=. \
-      -server-port=3010 -file-storage-path=/tmp/shortener_tmp_file
+      -server-port=3010 -file-storage-path=/tmp/storage.json
 
 linter:
 	go vet -vettool=$$(which statictest) ./...

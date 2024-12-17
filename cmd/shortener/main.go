@@ -19,7 +19,7 @@ func main() {
 func run() error {
 	cfg := config.GetConfig()
 
-	store := repository.NewStore()
+	store := repository.NewStore(cfg)
 	mapperService := service.NewMapper(cfg, store)
 
 	err := handlers.Serve(cfg, mapperService)
