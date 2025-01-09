@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -88,15 +87,11 @@ func (c *compressReader) Close() error {
 }
 
 func wclose(c *compressWriter) {
-	if err := c.Close(); err != nil {
-		log.Fatal(err)
-	}
+	_ = c.Close()
 }
 
 func rclose(c *compressReader) {
-	if err := c.Close(); err != nil {
-		log.Fatal(err)
-	}
+	_ = c.Close()
 }
 
 func Gzip(h http.Handler) http.Handler {

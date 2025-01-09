@@ -2,7 +2,6 @@ package logger
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -30,9 +29,7 @@ func Initialize(level string) (*zap.Logger, error) {
 }
 
 func Sync(l *zap.Logger) {
-	if err := l.Sync(); err != nil {
-		log.Fatal(err)
-	}
+	_ = l.Sync()
 }
 
 func RequestLogger(l *zap.Logger) func(next http.Handler) http.Handler {

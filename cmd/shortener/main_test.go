@@ -63,15 +63,16 @@ func TestHandlers(t *testing.T) {
 		postBody := map[string]interface{}{
 			"url": "www.ru",
 		}
-		body, _ := json.Marshal(postBody)
+		body, err1 := json.Marshal(postBody)
 		request := httptest.NewRequest(http.MethodGet, "/api/shorter", bytes.NewReader(body))
 		w := httptest.NewRecorder()
 		h.APIHandler(w, request)
 
 		res := w.Result()
 		var m map[string]interface{}
-		err := json.NewDecoder(res.Body).Decode(&m)
-		require.NoError(t, err)
+		err2 := json.NewDecoder(res.Body).Decode(&m)
+		require.NoError(t, err1)
+		require.NoError(t, err2)
 		assert.Contains(t, m, "result")
 		assert.Equal(t, 201, res.StatusCode)
 		assert.Equal(t, "application/json", res.Header.Get("Content-Type"))

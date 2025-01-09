@@ -128,7 +128,8 @@ func (h *handlers) APIHandler(res http.ResponseWriter, req *http.Request) {
 	var r service.SetMapperRequest
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&r); err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
+		log.Printf("badRequest: %v", err)
+		http.Error(res, "BadRequest", http.StatusBadRequest)
 		return
 	}
 
@@ -143,6 +144,7 @@ func (h *handlers) APIHandler(res http.ResponseWriter, req *http.Request) {
 
 	enc := json.NewEncoder(res)
 	if err := enc.Encode(resp); err != nil {
+		log.Printf("failed to encode: %v", err)
 		return
 	}
 }

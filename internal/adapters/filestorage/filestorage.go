@@ -102,5 +102,8 @@ func (c *Consumer) GetEvents() ([]Event, error) {
 
 func (c *Consumer) Close() error {
 	err := c.file.Close()
-	return fmt.Errorf("wrap: %w", err)
+	if err != nil {
+		return fmt.Errorf("wrap: %w", err)
+	}
+	return nil
 }
