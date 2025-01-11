@@ -3,7 +3,11 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
+
+	"github.com/ipcross/urlShortener/internal/adapters/filestorage"
+	"github.com/ipcross/urlShortener/internal/config"
 )
 
 type Repository interface {
@@ -16,10 +20,27 @@ type Store struct {
 	s   map[string]string
 }
 
-func NewStore() *Store {
+func NewStore(cfg config.ServerSettings) *Store {
+	mapFromFile := make(map[string]string)
+
+	if err := filestorage.NewConsumer(cfg.FileStorage); err != nil {
+		log.Printf("NewStore create consumer: %v", err)
+	}
+	events, err := filestorage.GetConsumer().GetEvents()
+	if err != nil {
+		log.Printf("Get events: %v", err)
+	}
+	for _, event := range events {
+		mapFromFile[event.ShortURL] = event.OriginalURL
+	}
+
+	if err := filestorage.NewProducer(cfg.FileStorage); err != nil {
+		log.Printf("NewStore create producer: %v", err)
+	}
+
 	return &Store{
 		mux: &sync.Mutex{},
-		s:   make(map[string]string),
+		s:   mapFromFile,
 	}
 }
 
@@ -72,5 +93,16 @@ func (s *Store) SetMapper(req *SetMapperRequest) error {
 	}
 
 	s.s[req.Key] = req.URL
+	if err := saveToFile(req.Key, req.URL); err != nil {
+		log.Printf("Error saveToFile: %v", err)
+	}
+	return nil
+}
+
+func saveToFile(key string, url string) error {
+	event := filestorage.Event{ShortURL: key, OriginalURL: url}
+	if err := filestorage.GetProducer().WriteEvent(&event); err != nil {
+		return fmt.Errorf("failed to saveToFile: %w", err)
+	}
 	return nil
 }

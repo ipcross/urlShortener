@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -8,25 +9,39 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/ipcross/urlShortener/internal/config"
+	l "github.com/ipcross/urlShortener/internal/logger"
+	"github.com/ipcross/urlShortener/internal/middleware"
 	"github.com/ipcross/urlShortener/internal/service"
+	"go.uber.org/zap"
 )
 
 func Serve(cfg config.ServerSettings, mapper Mapper) error {
+	logger, err := l.Initialize(cfg.LogLevel)
+	if err != nil {
+		return fmt.Errorf("logger.Initialize: %w", err)
+	}
+	defer l.Sync(logger)
+
+	logger.Info("Running server", zap.String("address", cfg.AddressRun))
+
 	h := NewHandlers(mapper, cfg)
-	router := myRouter(h)
+	router := myRouter(h, logger)
 
 	srv := &http.Server{
 		Addr:    cfg.AddressRun,
 		Handler: router,
 	}
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	return fmt.Errorf("handlers.Serve wrap: %w", err)
 }
 
-func myRouter(h *handlers) chi.Router {
+func myRouter(h *handlers, logger *zap.Logger) chi.Router {
 	r := chi.NewRouter()
+	r.Use(l.RequestLogger(logger))
+	r.Use(middleware.Gzip)
 	r.Post("/*", h.PostHandler)
+	r.Post("/api/shorten", h.APIHandler)
 	r.Get("/{key}", h.GetHandler)
 	r.Put("/*", h.BadRequestHandler)
 	return r
@@ -102,9 +117,34 @@ func (h *handlers) PostHandler(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", "text/plain")
 	res.WriteHeader(http.StatusCreated)
-	_, err = res.Write([]byte(h.config.AddressBase + "/" + resp.Key))
+	_, err = res.Write([]byte(resp.Link))
 	if err != nil {
 		log.Printf("Error writing to response: %v", err)
+		return
+	}
+}
+
+func (h *handlers) APIHandler(res http.ResponseWriter, req *http.Request) {
+	var r service.SetMapperRequest
+	dec := json.NewDecoder(req.Body)
+	if err := dec.Decode(&r); err != nil {
+		log.Printf("badRequest: %v", err)
+		http.Error(res, "BadRequest", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := h.mapper.SetMapper(&r)
+	if err != nil {
+		log.Printf("failed to save URL: %v", err)
+		http.Error(res, "Failed to save URL", http.StatusBadRequest)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+
+	enc := json.NewEncoder(res)
+	if err := enc.Encode(resp); err != nil {
+		log.Printf("failed to encode: %v", err)
 		return
 	}
 }

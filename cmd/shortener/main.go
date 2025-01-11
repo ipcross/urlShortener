@@ -19,8 +19,8 @@ func main() {
 func run() error {
 	cfg := config.GetConfig()
 
-	store := repository.NewStore()
-	mapperService := service.NewMapper(store)
+	store := repository.NewStore(cfg)
+	mapperService := service.NewMapper(cfg, store)
 
 	err := handlers.Serve(cfg, mapperService)
 	return fmt.Errorf("run wrap: %w", err)

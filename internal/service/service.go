@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/ipcross/urlShortener/internal/config"
 	"github.com/ipcross/urlShortener/internal/repository"
 )
 
@@ -20,11 +21,13 @@ type Repository interface {
 
 type Mapper struct {
 	store Repository
+	cfg   config.ServerSettings
 }
 
-func NewMapper(store Repository) *Mapper {
+func NewMapper(cfg config.ServerSettings, store Repository) *Mapper {
 	return &Mapper{
 		store: store,
+		cfg:   cfg,
 	}
 }
 
@@ -52,11 +55,11 @@ func (f *Mapper) GetMapper(req *GetMapperRequest) (*GetMapperResponse, error) {
 }
 
 type SetMapperRequest struct {
-	URL string
+	URL string `json:"url"`
 }
 
 type SetMapperResponse struct {
-	Key string
+	Link string `json:"result"`
 }
 
 func (f *Mapper) SetMapper(req *SetMapperRequest) (*SetMapperResponse, error) {
@@ -72,7 +75,7 @@ func (f *Mapper) SetMapper(req *SetMapperRequest) (*SetMapperResponse, error) {
 	}
 
 	return &SetMapperResponse{
-		Key: newHash,
+		Link: f.cfg.AddressBase + "/" + newHash,
 	}, nil
 }
 
