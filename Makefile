@@ -14,7 +14,7 @@ test: build
 
 stb: build
 	shortenertestbeta -test.v -test.run=^TestIteration$(n)$$ -binary-path=bin/shortener -source-path=. \
-      -server-port=3010 -file-storage-path=/tmp/storage.json
+      -server-port=3010 -file-storage-path=/tmp/storage.json -database-dsn='postgres://usertest:qwerty@localhost:5432/go_urlshortener?sslmode=disable'
 
 linter:
 	go vet -vettool=$$(which statictest) ./...
