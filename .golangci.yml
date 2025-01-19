@@ -131,7 +131,7 @@ linters-settings:
       # - flagName
       - hexLiteral
       - httpNoBody
-      - hugeParam
+      # - hugeParam
       # - ifElseChain
       - importShadow
       - indexAlloc

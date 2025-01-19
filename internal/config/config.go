@@ -10,6 +10,7 @@ type ServerSettings struct {
 	AddressBase string
 	LogLevel    string
 	FileStorage string
+	DBStorage   string
 }
 
 func GetConfig() ServerSettings {
@@ -19,6 +20,7 @@ func GetConfig() ServerSettings {
 	flag.StringVar(&settings.AddressBase, "b", "http://localhost:8080", "Base Address")
 	flag.StringVar(&settings.LogLevel, "l", "info", "Log level")
 	flag.StringVar(&settings.FileStorage, "f", "/tmp/storage.json", "File storage data")
+	flag.StringVar(&settings.DBStorage, "d", "", "Address connect to DB")
 	flag.Parse()
 
 	val, ok := os.LookupEnv("SERVER_ADDRESS")
@@ -39,6 +41,11 @@ func GetConfig() ServerSettings {
 	val, ok = os.LookupEnv("FILE_STORAGE_PATH")
 	if ok && val != "" {
 		settings.FileStorage = val
+	}
+
+	val, ok = os.LookupEnv("DATABASE_DSN")
+	if ok && val != "" {
+		settings.DBStorage = val
 	}
 
 	return settings
