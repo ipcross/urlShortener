@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	db "github.com/ipcross/urlShortener/internal/adapters/dbstorage"
 	"github.com/ipcross/urlShortener/internal/adapters/filestorage"
 	"github.com/ipcross/urlShortener/internal/config"
 )
@@ -18,29 +19,40 @@ type Repository interface {
 type Store struct {
 	mux *sync.Mutex
 	s   map[string]string
+	cfg config.ServerSettings
 }
 
 func NewStore(cfg config.ServerSettings) *Store {
-	mapFromFile := make(map[string]string)
+	mapFromStorage := make(map[string]string)
 
-	if err := filestorage.NewConsumer(cfg.FileStorage); err != nil {
-		log.Printf("NewStore create consumer: %v", err)
-	}
-	events, err := filestorage.GetConsumer().GetEvents()
-	if err != nil {
-		log.Printf("Get events: %v", err)
-	}
-	for _, event := range events {
-		mapFromFile[event.ShortURL] = event.OriginalURL
-	}
-
-	if err := filestorage.NewProducer(cfg.FileStorage); err != nil {
-		log.Printf("NewStore create producer: %v", err)
+	if len(cfg.DBStorage) == 0 {
+		if err := filestorage.NewConsumer(cfg.FileStorage); err != nil {
+			log.Printf("NewStore create consumer: %v", err)
+		}
+		events, err := filestorage.GetConsumer().GetEvents()
+		if err != nil {
+			log.Printf("Get events: %v", err)
+		}
+		for _, event := range events {
+			mapFromStorage[event.ShortURL] = event.OriginalURL
+		}
+		if err := filestorage.NewProducer(cfg.FileStorage); err != nil {
+			log.Printf("NewStore create producer: %v", err)
+		}
+	} else {
+		data, err := db.LoadDBData(cfg.DBStorage)
+		if err != nil {
+			log.Printf("Get events: %v", err)
+		}
+		for _, event := range data {
+			mapFromStorage[event.ShortURL] = event.OriginalURL
+		}
 	}
 
 	return &Store{
 		mux: &sync.Mutex{},
-		s:   mapFromFile,
+		s:   mapFromStorage,
+		cfg: cfg,
 	}
 }
 
@@ -93,8 +105,22 @@ func (s *Store) SetMapper(req *SetMapperRequest) error {
 	}
 
 	s.s[req.Key] = req.URL
-	if err := saveToFile(req.Key, req.URL); err != nil {
-		log.Printf("Error saveToFile: %v", err)
+	if len(s.cfg.DBStorage) == 0 {
+		if err := saveToFile(req.Key, req.URL); err != nil {
+			log.Printf("Error saveToFile: %v", err)
+		}
+	} else {
+		if err := saveToDB(s.cfg.DBStorage, req.Key, req.URL); err != nil {
+			log.Printf("Error saveToFile: %v", err)
+		}
+	}
+	return nil
+}
+
+func saveToDB(dsn string, key string, url string) error {
+	event := db.Event{ShortURL: key, OriginalURL: url}
+	if err := db.InsertRecord(dsn, &event); err != nil {
+		return fmt.Errorf("failed to saveToFile: %w", err)
 	}
 	return nil
 }

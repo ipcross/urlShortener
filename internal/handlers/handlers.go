@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	db "github.com/ipcross/urlShortener/internal/adapters/dbstorage"
 	"github.com/ipcross/urlShortener/internal/config"
 	l "github.com/ipcross/urlShortener/internal/logger"
 	"github.com/ipcross/urlShortener/internal/middleware"
@@ -43,6 +44,7 @@ func myRouter(h *handlers, logger *zap.Logger) chi.Router {
 	r.Post("/*", h.PostHandler)
 	r.Post("/api/shorten", h.APIHandler)
 	r.Get("/{key}", h.GetHandler)
+	r.Get("/ping", h.CheckPing)
 	r.Put("/*", h.BadRequestHandler)
 	return r
 }
@@ -61,6 +63,14 @@ func NewHandlers(mapper Mapper, cfg config.ServerSettings) *handlers {
 	return &handlers{
 		mapper: mapper,
 		config: cfg,
+	}
+}
+
+func (h *handlers) CheckPing(w http.ResponseWriter, _ *http.Request) {
+	if db.CheckPing(h.config.DBStorage) != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
